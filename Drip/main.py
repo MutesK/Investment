@@ -1,7 +1,7 @@
 
 # 차후 유저마다 데이터베이스화 작업 필수
-api_key = "tsck_live_IZ62T7JEDxvm3tO4Mq3B3D"
-secret_key = "tssk_live_6UF8PhJaafRuF2oduEl0BQxPfuqG3safdS2LDINhVgLB"
+api_key = "tsck_live_**"
+secret_key = "tssk_live_**"
 
 
 import requests
