@@ -1,0 +1,474 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2028 배당 포트폴리오 대시보드</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- AOS for Scroll Animations -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2b6cb0;
+            --accent-color: #319795;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #2d3748;
+            --muted-color: #718096;
+            --transition-speed: 0.6s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Standard Scrolling for Reliability */
+        .container {
+            width: 100%;
+        }
+
+        section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 100px 40px;
+            position: relative;
+            background: var(--bg-color);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        section:nth-child(even) {
+            background: #ffffff;
+        }
+
+        .slide-content {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            margin-bottom: 30px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--accent-color);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .highlight-val {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin: 10px 0;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        td {
+            padding: 12px 15px;
+            background: white;
+            border-bottom: 1px solid #edf2f7;
+            text-align: right;
+        }
+
+        td.text-left { text-align: left; font-weight: 600; }
+        td.text-center { text-align: center; }
+
+        .total-row td {
+            background-color: #f7fafc;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Floating Navigation */
+        .nav-dots {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            background: var(--muted-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .dot.active {
+            background: var(--secondary-color);
+            transform: scale(1.5);
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 968px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            section {
+                height: auto;
+                min-height: 100vh;
+                scroll-snap-align: none;
+                padding: 60px 20px;
+            }
+            .container {
+                scroll-snap-type: none;
+                height: auto;
+            }
+            h1 { font-size: 2rem; }
+            .highlight-val { font-size: 2.5rem; }
+            .chart-container { height: 300px; }
+        }
+
+        /* Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease-out;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="nav-dots">
+    <div class="dot active" onclick="scrollToSection(0)"></div>
+    <div class="dot" onclick="scrollToSection(1)"></div>
+    <div class="dot" onclick="scrollToSection(2)"></div>
+    <div class="dot" onclick="scrollToSection(3)"></div>
+</div>
+
+<div class="container" id="scroll-container">
+    <!-- Slide 1: Welcome & Summary -->
+    <section id="slide-0">
+        <div class="slide-content" data-aos="fade-up">
+            <div style="text-align: center; margin-bottom: 50px;">
+                <h1 style="color: var(--primary-color); letter-spacing: -1px;">2028 Dividend Dashboard</h1>
+                <p style="color: var(--muted-color); font-size: 1.2rem;">미국 및 한국 자산 포트폴리오 배당 예측 리포트</p>
+            </div>
+
+            <div class="grid">
+                <div class="card" data-aos="zoom-in" data-aos-delay="200">
+                    <p style="font-weight: 700; color: var(--muted-color); text-transform: uppercase;">Total Estimated Dividend</p>
+                    <div class="highlight-val" id="total-val">₩34,890,319</div>
+                    <p style="color: var(--accent-color); font-weight: 600;">↑ 2028년 6월 말 예상 결과</p>
+                </div>
+                <div class="chart-container" data-aos="fade-left" data-aos-delay="400">
+                    <canvas id="summaryChart"></canvas>
+                </div>
+            </div>
+            
+            <div style="margin-top: 50px; display: flex; gap: 20px; justify-content: center;">
+                <div class="card" style="flex: 1; text-align: center; border-top-color: #2b6cb0;">
+                    <p style="color: var(--muted-color);">미국 자산 배당 합계</p>
+                    <h3 style="font-size: 1.5rem; color: var(--primary-color);">₩4,974,883</h3>
+                </div>
+                <div class="card" style="flex: 1; text-align: center; border-top-color: #e53e3e;">
+                    <p style="color: var(--muted-color);">한국 자산 배당 합계</p>
+                    <h3 style="font-size: 1.5rem; color: var(--primary-color);">₩29,915,436</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 2: US Assets -->
+    <section id="slide-1">
+        <div class="slide-content">
+            <h2 data-aos="fade-right">미국 자산 배당 분석</h2>
+            <div class="grid">
+                <div data-aos="fade-up">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>종목명</th>
+                                <th>추가 투자금</th>
+                                <th>배당률</th>
+                                <th>예상 배당액</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="text-left">DIVO</td><td>₩10.6M</td><td class="text-center">6.45%</td><td>₩687,961</td></tr>
+                            <tr><td class="text-left">GPIQ</td><td>₩14.8M</td><td class="text-center">10.17%</td><td>₩1,513,599</td></tr>
+                            <tr><td class="text-left">GPIX</td><td>₩12.8M</td><td class="text-center">8.40%</td><td>₩1,078,272</td></tr>
+                            <tr><td class="text-left">QDVO</td><td>₩15.8M</td><td class="text-center">10.68%</td><td>₩1,695,052</td></tr>
+                            <tr class="total-row">
+                                <td colspan="3" class="text-left">미국 배당 합계</td>
+                                <td>₩4,974,883</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="chart-container" data-aos="zoom-in">
+                    <canvas id="usChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 3: KR Assets -->
+    <section id="slide-2">
+        <div class="slide-content">
+            <h2 data-aos="fade-right">한국 자산 배당 분석</h2>
+            <div class="grid">
+                <div class="chart-container" data-aos="zoom-in">
+                    <canvas id="krChart"></canvas>
+                </div>
+                <div data-aos="fade-up">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>종목명</th>
+                                <th>최종 좌수</th>
+                                <th>주당 배당금</th>
+                                <th>산출 배당액</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="text-left">미국AI밸류체인</td><td>1,257</td><td>374</td><td>₩5,641,416</td></tr>
+                            <tr><td class="text-left">코리아밸류업</td><td>4,856</td><td>390</td><td>₩22,726,080</td></tr>
+                            <tr><td class="text-left">배당커버드콜</td><td>1,124</td><td>80</td><td>₩1,079,040</td></tr>
+                            <tr><td class="text-left">반도체타겟</td><td>521</td><td>75</td><td>₩468,900</td></tr>
+                            <tr class="total-row">
+                                <td colspan="3" class="text-left">한국 배당 합계</td>
+                                <td>₩29,915,436</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 4: Summary & Health Insurance -->
+    <section id="slide-3">
+        <div class="slide-content">
+            <h2 data-aos="fade-up">건보료 및 과표 분석</h2>
+            <div class="grid">
+                <div class="card" data-aos="flip-left">
+                    <h3>💡 효율적인 과표 관리</h3>
+                    <ul style="margin-top: 20px; padding-left: 20px;">
+                        <li><strong>국내 커버드콜 활용:</strong> 과표 제외 종목 비중 확대를 통한 실질 과표가 방어</li>
+                        <li><strong>금융소득 종합과세:</strong> 2,000만원 기준점 관리 및 건보료 산정 기준 모니터링</li>
+                        <li><strong>자산 재배치:</strong> 절세 계좌(ISA/IRP 등) 연계 및 비과세 혜택 극대화</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-top-color: #f56565;" data-aos="flip-right">
+                    <h3>📊 예상 배당 과표가 (연간)</h3>
+                    <div class="highlight-val" style="color: #f56565;">₩10,616,299</div>
+                    <p style="color: var(--muted-color); font-weight: 600;">⚠️ 총 배당액 중 약 30.4%만 과표 반영</p>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: #e53e3e;">* 국내 커버드콜 종목의 비과세 혜택으로 건보료 상승 압박 최소화</p>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 80px;" data-aos="fade-up">
+                <p style="color: var(--muted-color);">© 2026 Executive Portfolio Report | Health Insurance & Tax Optimization Focus</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    // Initialize AOS
+    AOS.init({
+        duration: 1000,
+        once: false,
+        mirror: true
+    });
+
+    // Navigation Dots Logic
+    const sections = document.querySelectorAll('section');
+    const dots = document.querySelectorAll('.dot');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
+            if (window.pageYOffset >= sectionTop - sectionHeight / 3) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        dots.forEach(dot => {
+            dot.classList.remove('active');
+            if (dot.getAttribute('onclick').includes(current.split('-')[1])) {
+                dot.classList.add('active');
+            }
+        });
+    });
+
+    function scrollToSection(index) {
+        window.scrollTo({
+            top: document.getElementById(`slide-${index}`).offsetTop,
+            behavior: 'smooth'
+        });
+    }
+
+    // Charts
+    // Summary Chart
+    new Chart(document.getElementById('summaryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['미국 자산', '한국 자산'],
+            datasets: [{
+                data: [4974883, 29915436],
+                backgroundColor: ['#2b6cb0', '#e53e3e'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // US Chart
+    new Chart(document.getElementById('usChart'), {
+        type: 'bar',
+        data: {
+            labels: ['DIVO', 'GPIQ', 'GPIX', 'QDVO'],
+            datasets: [{
+                label: '예상 배당액 (₩)',
+                data: [687961, 1513599, 1078272, 1695052],
+                backgroundColor: '#319795',
+                borderRadius: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // KR Chart
+    new Chart(document.getElementById('krChart'), {
+        type: 'pie',
+        data: {
+            labels: ['미국AI밸류체인', '코리아밸류업', '배당커버드콜', '반도체타겟'],
+            datasets: [{
+                data: [5641416, 22726080, 1079040, 468900],
+                backgroundColor: ['#4299e1', '#48bb78', '#ecc94b', '#ed64a1'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Number Count Up Animation (Simple)
+    function animateValue(obj, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const val = Math.floor(progress * (end - start) + start);
+            obj.innerHTML = '₩' + val.toLocaleString();
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    const totalEl = document.getElementById('total-val');
+    // Trigger on slide 0
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            animateValue(totalEl, 0, 34890319, 2000);
+            observer.unobserve(entries[0]);
+        }
+    });
+    observer.observe(document.getElementById('slide-0'));
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+services:
+  dst-server:
+    image: jamesits/dst-server:latest
+    container_name: dst_server
+    restart: always
+    environment:
+      - DST_SERVER_ARCH=amd64
+      - DST_CLUSTER_NAME=MyNAS_DST_Server
+    ports:
+      - "10999:10999/udp"
+      - "11000:11000/udp"
+      - "12346-12347:12346-12347/udp"
+    volumes:
+      - /mnt/nas/DST-Server/data:/data
+      - /mnt/nas/DST-Server/game:/opt/dst_server

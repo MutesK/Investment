@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DGRO + DIVO vs SCHD 백테스트 배당 비교</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=SUIT:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fffaf4;
+      --ink: #1f2937;
+      --muted: #5f6b7a;
+      --line: #eee2d3;
+      --panel: #ffffff;
+      --teal: #0f766e;
+      --teal2: #14b8a6;
+      --amber: #d97706;
+      --amber2: #f59e0b;
+      --shadow: 0 20px 45px rgba(35, 28, 18, 0.1);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "SUIT", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 8% -10%, #ffe9c8 0%, transparent 65%),
+        radial-gradient(700px 350px at 92% 0, #dff7f1 0%, transparent 60%),
+        var(--bg);
+    }
+
+    .wrap { width: min(1160px, 92vw); margin: 0 auto; padding: 42px 0 64px; }
+
+    .hero {
+      background: linear-gradient(130deg, #ffffffd8, #fff4e4d6);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 390px;
+      height: 390px;
+      right: -130px;
+      top: -200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f59e0b38 0%, #f59e0b00 65%);
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 4vw, 2.8rem);
+      letter-spacing: -0.02em;
+      line-height: 1.18;
+    }
+
+    .sub {
+      margin-top: 10px;
+      color: var(--muted);
+      max-width: 900px;
+      line-height: 1.55;
+    }
+
+    .badge-row {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .badge {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #965b0b;
+      background: #fff6e8;
+      border: 1px solid #eed9b8;
+      border-radius: 999px;
+      padding: 7px 11px;
+    }
+
+    .controls {
+      margin-top: 18px;
+      background: #ffffffc4;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    .weights {
+      margin-top: 7px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #14532d;
+    }
+
+    input[type="range"] { width: 100%; accent-color: var(--teal); }
+
+    .kpi-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 10px 24px rgba(58, 46, 28, 0.08);
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .card.visible { opacity: 1; transform: translateY(0); }
+
+    .kpi-title { margin: 0; color: var(--muted); font-size: 0.88rem; }
+    .kpi-value { margin: 6px 0 0; font-size: clamp(1.35rem, 3vw, 2rem); font-weight: 800; }
+
+    .section-title { margin: 34px 0 10px; font-size: 1.2rem; }
+
+    .panel-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; }
+
+    .table-wrap { margin-top: 14px; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid #f1e8dd;
+      text-align: right;
+      white-space: nowrap;
+      font-size: 0.92rem;
+    }
+
+    th {
+      background: #fff7ea;
+      color: #8a5108;
+      font-weight: 700;
+    }
+
+    th:first-child, td:first-child { text-align: left; }
+    tr:last-child td { border-bottom: none; }
+
+    .bars {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .track {
+      width: 100%;
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #f4eee3;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: 999px;
+      transform-origin: left center;
+      transform: scaleX(0);
+      animation: grow 1s ease forwards;
+    }
+
+    .fill.teal { background: linear-gradient(90deg, var(--teal), var(--teal2)); }
+    .fill.amber { background: linear-gradient(90deg, var(--amber), var(--amber2)); }
+
+    @keyframes grow { to { transform: scaleX(1); } }
+
+    .footnote {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .panel-grid { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 96px 1fr auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>DGRO + DIVO vs SCHD<br />배당 백테스트 기반 상세 비교</h1>
+      <p class="sub">
+        요청하신 대로 추정치가 아니라 실제 분배금 이력으로 백테스트한 결과만 사용합니다.
+        정의는 TTM 시가배당률(최근 12개월 분배금 / 월말 종가)과 TTM 분배금의 연환산 성장률입니다.
+      </p>
+      <div class="badge-row">
+        <span class="badge" id="periodBadge">백테스트 기간: -</span>
+        <span class="badge" id="sourceBadge">데이터 소스: -</span>
+        <span class="badge" id="generatedBadge">생성시각: -</span>
+      </div>
+
+      <div class="controls">
+        <label for="dgroWeight"><strong>DGRO 비중 조절</strong> (DIVO는 자동으로 나머지)</label>
+        <input id="dgroWeight" type="range" min="0" max="100" value="50" step="5" />
+        <div id="weights" class="weights">DGRO 50% / DIVO 50%</div>
+      </div>
+
+      <div class="kpi-grid">
+        <article class="card reveal">
+          <p class="kpi-title">조합(DGRO+DIVO) 최신 TTM 시가배당률</p>
+          <p id="blendYieldKpi" class="kpi-value">-</p>
+        </article>
+        <article class="card reveal">
+          <p class="kpi-title">조합(DGRO+DIVO) 전체구간 배당성장률(CAGR)</p>
+          <p id="blendGrowthKpi" class="kpi-value">-</p>
+        </article>
+        <article class="card reveal">
+          <p class="kpi-title">SCHD 최신 배당률 / 성장률</p>
+          <p id="schdKpi" class="kpi-value">-</p>
+        </article>
+      </div>
+    </section>
+
+    <h2 class="section-title">1) 백테스트 시계열 비교</h2>
+    <section class="panel-grid">
+      <article class="card reveal">
+        <canvas id="yieldTrend" height="220"></canvas>
+      </article>
+      <article class="card reveal">
+        <canvas id="weightFrontier" height="220"></canvas>
+      </article>
+    </section>
+
+    <h2 class="section-title">2) 상세 지표 테이블</h2>
+    <section class="table-wrap card reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>지표</th>
+            <th>DGRO</th>
+            <th>DIVO</th>
+            <th>DGRO+DIVO(선택비중)</th>
+            <th>SCHD</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>최신 TTM 시가배당률</td>
+            <td id="dgroLatestYield">-</td>
+            <td id="divoLatestYield">-</td>
+            <td id="blendLatestYield">-</td>
+            <td id="schdLatestYield">-</td>
+          </tr>
+          <tr>
+            <td>평균 TTM 시가배당률</td>
+            <td id="dgroAvgYield">-</td>
+            <td id="divoAvgYield">-</td>
+            <td id="blendAvgYield">-</td>
+            <td id="schdAvgYield">-</td>
+          </tr>
+          <tr>
+            <td>최소~최대 TTM 시가배당률</td>
+            <td id="dgroMinMax">-</td>
+            <td id="divoMinMax">-</td>
+            <td id="blendMinMax">-</td>
+            <td id="schdMinMax">-</td>
+          </tr>
+          <tr>
+            <td>배당성장률 CAGR(전체구간)</td>
+            <td id="dgroCagr">-</td>
+            <td id="divoCagr">-</td>
+            <td id="blendCagr">-</td>
+            <td id="schdCagr">-</td>
+          </tr>
+          <tr>
+            <td>평균 1Y 배당성장률</td>
+            <td id="dgroG1">-</td>
+            <td id="divoG1">-</td>
+            <td id="blendG1">-</td>
+            <td id="schdG1">-</td>
+          </tr>
+          <tr>
+            <td>평균 3Y 배당성장률</td>
+            <td id="dgroG3">-</td>
+            <td id="divoG3">-</td>
+            <td id="blendG3">-</td>
+            <td id="schdG3">-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="bars" id="quickBars"></div>
+
+      <p class="footnote" id="notes"></p>
+    </section>
+  </main>
+
+  <script>
+    const pct = (v) => `${(v * 100).toFixed(2)}%`;
+
+    function animatePercent(el, value) {
+      const start = performance.now();
+      const from = 0;
+      const to = value * 100;
+      const duration = 900;
+
+      function frame(now) {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const cur = from + (to - from) * eased;
+        el.textContent = `${cur.toFixed(2)}%`;
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function revealCards() {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+
+      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+    }
+
+    function nearestScenario(scenarios, dgroWeight) {
+      let best = scenarios[0];
+      let bestDiff = Math.abs(scenarios[0].dgro_weight - dgroWeight);
+      for (const s of scenarios) {
+        const diff = Math.abs(s.dgro_weight - dgroWeight);
+        if (diff < bestDiff) {
+          best = s;
+          bestDiff = diff;
+        }
+      }
+      return best;
+    }
+
+    function drawBars(blend, schd) {
+      const box = document.getElementById("quickBars");
+      const rows = [
+        { label: "현재 배당률", blend: blend.latest_yield, schd: schd.latest_yield },
+        { label: "성장률 CAGR", blend: blend.div_growth_cagr_full, schd: schd.div_growth_cagr_full },
+        { label: "평균 1Y 성장", blend: blend.avg_growth_1y, schd: schd.avg_growth_1y }
+      ];
+
+      box.innerHTML = "";
+      rows.forEach((row) => {
+        const maxVal = Math.max(row.blend, row.schd, 0.0001);
+        const bW = Math.max(2, (row.blend / maxVal) * 100);
+        const sW = Math.max(2, (row.schd / maxVal) * 100);
+
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = `
+          <div style="font-weight:700; margin-bottom:6px;">${row.label}</div>
+          <div class="bar-row">
+            <strong>DGRO+DIVO</strong>
+            <div class="track"><div class="fill teal" style="width:${bW}%;"></div></div>
+            <span>${pct(row.blend)}</span>
+          </div>
+          <div class="bar-row">
+            <strong>SCHD</strong>
+            <div class="track"><div class="fill amber" style="width:${sW}%;"></div></div>
+            <span>${pct(row.schd)}</span>
+          </div>
+        `;
+        box.appendChild(wrapper);
+      });
+    }
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    async function init() {
+      revealCards();
+
+      try {
+        const response = await fetch("./dividend_backtest_results.json", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        console.log("Loaded JSON data:", data); // Debugging log
+
+        setText("periodBadge", `백테스트 기간: ${data.period.start} ~ ${data.period.end} (${data.period.months}개월)`);
+        setText("sourceBadge", `데이터 소스: ${data.source}`);
+        setText("generatedBadge", `생성시각: ${data.generated_at.replace("T", " ").replace("Z", " UTC")}`);
+
+        const slider = document.getElementById("dgroWeight");
+        const weights = document.getElementById("weights");
+
+        const dgro = data.individual.DGRO;
+        const divo = data.individual.DIVO;
+        const schd = data.individual.SCHD;
+        const scenarios = data.weight_scenarios;
+
+        const labels = data.series.map((x) => x.month);
+
+        const yieldTrend = new Chart(document.getElementById("yieldTrend"), {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "DGRO+DIVO TTM 시가배당률(%)",
+                data: data.series.map((x) => x.blend_yield * 100),
+                borderColor: "#0f766e",
+                backgroundColor: "#0f766e22",
+                tension: 0.3,
+                fill: true
+              },
+              {
+                label: "SCHD TTM 시가배당률(%)",
+                data: data.series.map((x) => x.schd_yield * 100),
+                borderColor: "#d97706",
+                backgroundColor: "#d9770620",
+                tension: 0.3,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: "#374151" } } },
+            scales: {
+              x: { ticks: { color: "#4b5563", maxTicksLimit: 8 }, grid: { display: false } },
+              y: { ticks: { color: "#4b5563" }, grid: { color: "#efe5d7" } }
+            }
+          }
+        });
+
+        const weightFrontier = new Chart(document.getElementById("weightFrontier"), {
+          type: "bar",
+          data: {
+            labels: scenarios.map((s) => `${Math.round(s.dgro_weight * 100)}%`),
+            datasets: [
+              {
+                type: "line",
+                label: "최신 배당률(%)",
+                data: scenarios.map((s) => s.latest_yield * 100),
+                borderColor: "#0f766e",
+                backgroundColor: "#0f766e22",
+                yAxisID: "y",
+                tension: 0.25
+              },
+              {
+                type: "bar",
+                label: "배당성장 CAGR(%)",
+                data: scenarios.map((s) => s.div_growth_cagr_full * 100),
+                backgroundColor: "#f59e0b",
+                yAxisID: "y1"
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: "#374151" } } },
+            scales: {
+              x: { ticks: { color: "#4b5563" }, grid: { display: false } },
+              y: {
+                position: "left",
+                ticks: { color: "#0f766e" },
+                grid: { color: "#efe5d7" },
+                title: { display: true, text: "배당률(%)", color: "#0f766e" }
+              },
+              y1: {
+                position: "right",
+                ticks: { color: "#b45309" },
+                grid: { display: false },
+                title: { display: true, text: "성장률(%)", color: "#b45309" }
+              }
+            }
+          }
+        });
+
+        function renderByWeight(weightPct) {
+          const w = weightPct / 100;
+          const s = nearestScenario(scenarios, w);
+          weights.textContent = `DGRO ${Math.round(s.dgro_weight * 100)}% / DIVO ${Math.round(s.divo_weight * 100)}%`;
+
+          animatePercent(document.getElementById("blendYieldKpi"), s.latest_yield);
+          animatePercent(document.getElementById("blendGrowthKpi"), s.div_growth_cagr_full);
+          setText("schdKpi", `${pct(schd.latest_yield)} / ${pct(schd.div_growth_cagr_full)}`);
+
+          setText("dgroLatestYield", pct(dgro.latest_yield));
+          setText("divoLatestYield", pct(divo.latest_yield));
+          setText("blendLatestYield", pct(s.latest_yield));
+          setText("schdLatestYield", pct(schd.latest_yield));
+
+          setText("dgroAvgYield", pct(dgro.avg_yield));
+          setText("divoAvgYield", pct(divo.avg_yield));
+          setText("blendAvgYield", pct(s.avg_yield));
+          setText("schdAvgYield", pct(schd.avg_yield));
+
+          setText("dgroMinMax", `${pct(dgro.min_yield)} ~ ${pct(dgro.max_yield)}`);
+          setText("divoMinMax", `${pct(divo.min_yield)} ~ ${pct(divo.max_yield)}`);
+          setText("blendMinMax", "시나리오별 평균/최신 중심");
+          setText("schdMinMax", `${pct(schd.min_yield)} ~ ${pct(schd.max_yield)}`);
+
+          setText("dgroCagr", pct(dgro.div_growth_cagr_full));
+          setText("divoCagr", pct(divo.div_growth_cagr_full));
+          setText("blendCagr", pct(s.div_growth_cagr_full));
+          setText("schdCagr", pct(schd.div_growth_cagr_full));
+
+          setText("dgroG1", pct(dgro.avg_growth_1y));
+          setText("divoG1", pct(divo.avg_growth_1y));
+          setText("blendG1", pct(s.avg_growth_1y));
+          setText("schdG1", pct(schd.avg_growth_1y));
+
+          setText("dgroG3", pct(dgro.avg_growth_3y));
+          setText("divoG3", pct(divo.avg_growth_3y));
+          setText("blendG3", "시나리오 요약 미제공");
+          setText("schdG3", pct(schd.avg_growth_3y));
+
+          drawBars(
+            {
+              latest_yield: s.latest_yield,
+              div_growth_cagr_full: s.div_growth_cagr_full,
+              avg_growth_1y: s.avg_growth_1y
+            },
+            {
+              latest_yield: schd.latest_yield,
+              div_growth_cagr_full: schd.div_growth_cagr_full,
+              avg_growth_1y: schd.avg_growth_1y
+            }
+          );
+
+          yieldTrend.data.datasets[0].label = `DGRO ${Math.round(s.dgro_weight * 100)}% + DIVO ${Math.round(s.divo_weight * 100)}%`;
+          yieldTrend.update();
+        }
+
+        setText(
+          "notes",
+          `지표 정의: ${data.notes.yield_definition}, ${data.notes.growth_definition}. ` +
+          `제약: ${data.notes.limitations.join(" / ")}.`
+        );
+
+        renderByWeight(Number(slider.value));
+        slider.addEventListener("input", (e) => renderByWeight(Number(e.target.value)));
+      } catch (error) {
+        console.error("Error loading or processing JSON data:", error);
+        document.body.insertAdjacentHTML(
+          "beforeend",
+          '<p style="padding:20px;color:#b91c1c;font-weight:700;">백테스트 JSON 로드 실패: dividend_backtest_results.json 파일을 확인하세요.</p>'
+        );
+      }
+    }
+
+    init().catch((err) => {
+      console.error(err);
+      document.body.insertAdjacentHTML(
+        "beforeend",
+        '<p style="padding:20px;color:#b91c1c;font-weight:700;">백테스트 JSON 로드 실패: dividend_backtest_results.json 파일을 확인하세요.</p>'
+      );
+    });
+  </script>
+</body>
+</html>

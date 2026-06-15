@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포트폴리오 운용 대시보드</title>
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #0f3460;
+            --highlight: #e94560;
+            --text: #eaeaea;
+            --text-muted: #a0a0b0;
+            --card-bg: rgba(22, 33, 62, 0.85);
+            --input-bg: rgba(15, 52, 96, 0.5);
+            --border: rgba(233, 69, 96, 0.3);
+            --success: #00d2d3;
+            --gradient-1: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --gradient-2: linear-gradient(135deg, #0f3460 0%, #e94560 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--primary);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(15, 52, 96, 0.4) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(233, 69, 96, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(0, 210, 211, 0.1) 0%, transparent 50%);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        .header h1 {
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 800;
+            background: var(--gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--highlight);
+            border-radius: 2px;
+        }
+
+        /* Input Section */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            color: var(--text);
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--highlight);
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.2);
+        }
+
+        .input-group input[readonly] {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Toggle */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+        }
+
+        .toggle-label {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .toggle {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            cursor: pointer;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--accent);
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background: var(--highlight);
+        }
+
+        .toggle input:checked + .toggle-slider::before {
+            transform: translateX(24px);
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        thead th {
+            background: rgba(233, 69, 96, 0.15);
+            padding: 0.85rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--highlight);
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            white-space: nowrap;
+        }
+
+        tbody tr:hover {
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        tbody tr.isa-row {
+            background: rgba(0, 210, 211, 0.05);
+        }
+
+        tbody tr.pension-row {
+            background: rgba(255, 193, 7, 0.05);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-normal {
+            background: rgba(233, 69, 96, 0.2);
+            color: var(--highlight);
+        }
+
+        .badge-isa {
+            background: rgba(0, 210, 211, 0.2);
+            color: var(--success);
+        }
+
+        .badge-pension {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .editable-cell input {
+            background: var(--input-bg);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.4rem 0.6rem;
+            color: var(--text);
+            font-size: 0.9rem;
+            width: 80px;
+            text-align: right;
+            transition: border-color 0.3s;
+        }
+
+        .editable-cell input:focus {
+            outline: none;
+            border-color: var(--highlight);
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-item {
+            background: rgba(15, 52, 96, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .summary-item .value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--success);
+            margin-bottom: 0.3rem;
+        }
+
+        .summary-item .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Notes */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .note-card {
+            position: relative;
+            padding: 1.4rem;
+            background: rgba(15, 52, 96, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .note-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .note-card .note-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .note-card .note-category {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .note-card .note-text {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+        }
+
+        .note-card.strategy .note-icon {
+            background: rgba(0, 210, 211, 0.15);
+        }
+        .note-card.strategy .note-category {
+            color: var(--success);
+        }
+
+        .note-card.warning .note-icon {
+            background: rgba(255, 193, 7, 0.15);
+        }
+        .note-card.warning .note-category {
+            color: #ffc107;
+        }
+
+        .note-card.danger .note-icon {
+            background: rgba(255, 71, 87, 0.15);
+        }
+        .note-card.danger .note-category {
+            color: #ff4757;
+        }
+
+        .note-card.info .note-icon {
+            background: rgba(99, 140, 255, 0.15);
+        }
+        .note-card.info .note-category {
+            color: #638cff;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .card {
+                padding: 1.2rem;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            thead th, tbody td {
+                padding: 0.6rem 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Number formatting */
+        .num-positive {
+            color: var(--success);
+        }
+
+        .num-zero {
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-particles"></div>
+    <div class="container">
+        <!-- Header -->
+        <header class="header" data-aos="fade-down" data-aos-duration="800">
+            <h1>포트폴리오 운용 대시보드</h1>
+            <p>배당 투자 포트폴리오 시뮬레이션 & 관리</p>
+        </header>
+
+        <!-- Summary Section -->
+        <div class="summary-grid" data-aos="fade-up" data-aos-duration="600" data-aos-delay="100">
+            <div class="summary-item">
+                <div class="value" id="sum-monthly-invest">₩0</div>
+                <div class="label">총 월 투자비용</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="sum-yearly-invest">₩0</div>
+                <div class="label">총 년 투자비용</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="sum-monthly-dividend">₩0</div>
+                <div class="label">월 배당증가 합계</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="sum-yearly-dividend">₩0</div>
+                <div class="label">년 배당증가 합계 (단리)</div>
+            </div>
+        </div>
+
+        <!-- User Input Section -->
+        <section class="card" data-aos="fade-up" data-aos-duration="600" data-aos-delay="200">
+            <div class="card-title">투자 설정</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>매월 투입분</label>
+                    <input type="text" id="monthly-input" value="3,000,000" inputmode="numeric">
+                </div>
+                <div class="input-group">
+                    <label>배당 중위값</label>
+                    <input type="text" id="dividend-median" value="1,700,000" inputmode="numeric">
+                </div>
+            </div>
+            <div class="toggle-wrapper">
+                <label class="toggle">
+                    <input type="checkbox" id="add-dividend-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label">배당금 재투자 추가</span>
+            </div>
+        </section>
+
+        <!-- Table 2: Account Allocation (Editable) -->
+        <section class="card" data-aos="fade-up" data-aos-duration="600" data-aos-delay="300">
+            <div class="card-title">계좌별 투자비중 설정</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>계좌종류</th>
+                            <th>투자비중</th>
+                            <th>월 투입</th>
+                            <th>년 투입</th>
+                        </tr>
+                    </thead>
+                    <tbody id="account-table-body">
+                        <tr>
+                            <td><span class="badge badge-normal">일반</span></td>
+                            <td class="editable-cell"><input type="text" class="account-weight" data-account="normal" value="50%"></td>
+                            <td id="normal-monthly">₩0</td>
+                            <td id="normal-yearly">₩0</td>
+                        </tr>
+                        <tr class="isa-row">
+                            <td><span class="badge badge-isa">ISA</span></td>
+                            <td class="editable-cell"><input type="text" class="account-weight" data-account="isa" value="50%"></td>
+                            <td id="isa-monthly">₩0</td>
+                            <td id="isa-yearly">₩0</td>
+                        </tr>
+                        <tr class="pension-row">
+                            <td><span class="badge badge-pension">연금</span></td>
+                            <td class="editable-cell"><input type="text" class="account-weight" data-account="pension" value="0%"></td>
+                            <td id="pension-monthly">₩0</td>
+                            <td id="pension-yearly">₩0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Table 1: Portfolio Details (Read-only) -->
+        <section class="card" data-aos="fade-up" data-aos-duration="600" data-aos-delay="400">
+            <div class="card-title">투자 포트폴리오 상세</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>투자종목</th>
+                            <th>계좌종류</th>
+                            <th>투자비중</th>
+                            <th>월 투자비용</th>
+                            <th>년 총합투자비용</th>
+                            <th>배당률 (평균)</th>
+                            <th>월투자금에 의한 년 배당증가</th>
+                            <th>년 총합 배당증가 (단리)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolio-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Notes Section -->
+        <section class="card" data-aos="fade-up" data-aos-duration="600" data-aos-delay="500">
+            <div class="card-title">운용 원칙 & 메모</div>
+            <div class="notes-grid">
+                <div class="note-card strategy" data-aos="zoom-in" data-aos-delay="550">
+                    <div class="note-icon">⚖️</div>
+                    <div class="note-category">배당 전략</div>
+                    <div class="note-text">배당금의 경우 상황에 맞게 밸런스하게 투자 진행한다.</div>
+                </div>
+                <div class="note-card info" data-aos="zoom-in" data-aos-delay="600">
+                    <div class="note-icon">📌</div>
+                    <div class="note-category">레버리지 원칙</div>
+                    <div class="note-text">2배 레버리지는 ISA 해지까지 일반계좌에서 안하는 방향으로 결정.</div>
+                </div>
+                <div class="note-card warning" data-aos="zoom-in" data-aos-delay="650">
+                    <div class="note-icon">🏠</div>
+                    <div class="note-category">퇴사 후 전략</div>
+                    <div class="note-text">집 팔면 현금비중 30% 유지. 부동산 매도 자금은 저변동성 주식 또는 현금화.</div>
+                </div>
+                <div class="note-card info" data-aos="zoom-in" data-aos-delay="700">
+                    <div class="note-icon">🛡️</div>
+                    <div class="note-category">저변동성 후보</div>
+                    <div class="note-text">ACE 미국배당퀄리티커버드콜액티브</div>
+                </div>
+                <div class="note-card warning" data-aos="zoom-in" data-aos-delay="750">
+                    <div class="note-icon">💊</div>
+                    <div class="note-category">건강보험료 주의</div>
+                    <div class="note-text">항상 포트 변경시, 건보료 변수를 생각하라.</div>
+                </div>
+                <div class="note-card danger" data-aos="zoom-in" data-aos-delay="800">
+                    <div class="note-icon">🚨</div>
+                    <div class="note-category">과세 한도</div>
+                    <div class="note-text">이자·배당소득 과표기준 2천만원을 절대 넘지 마라.</div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            포트폴리오 운용 대시보드 · 데이터 기준: 스프레드시트
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            once: true,
+            easing: 'ease-out-cubic'
+        });
+
+        // Portfolio data from spreadsheet
+        const portfolioData = [
+            { name: 'DIVO', account: '일반', weight: 0.125, dividendRate: 0.0635 },
+            { name: 'GPIQ', account: '일반', weight: 0.125, dividendRate: 0.0994 },
+            { name: 'GPIX', account: '일반', weight: 0.125, dividendRate: 0.0827 },
+            { name: 'QDVO', account: '일반', weight: 0.125, dividendRate: 0.1059 },
+            { name: 'USD', account: '일반', weight: 0.0, dividendRate: 0.0 },
+            { name: 'QLD', account: '일반', weight: 0.0, dividendRate: 0.0 },
+            { name: 'KODEX 반도체타겟위클리커버드콜', account: '일반', weight: 0.125, dividendRate: 0.09 },
+            { name: 'RISE 미국AI밸류체인데일리고정커버드콜', account: '일반', weight: 0.125, dividendRate: 0.2016 },
+            { name: 'RISE 코리아밸류업위클리고정커버드콜', account: '일반', weight: 0.125, dividendRate: 0.1974 },
+            { name: 'TIGER 배당커버드콜액티브', account: '일반', weight: 0.125, dividendRate: 0.07 },
+            { name: 'TIGER 미국필라델피아반도체레버리지', account: 'ISA', weight: 0.5, dividendRate: 0.0 },
+            { name: 'TIGER 미국나스닥100레버리지', account: 'ISA', weight: 0.5, dividendRate: 0.0 },
+            { name: 'KIWOOM미국AI테크하이베타', account: '연금', weight: 0.0, dividendRate: 0.0 },
+        ];
+
+        // DOM elements
+        const monthlyInputEl = document.getElementById('monthly-input');
+        const dividendMedianEl = document.getElementById('dividend-median');
+        const addDividendToggle = document.getElementById('add-dividend-toggle');
+        const portfolioTableBody = document.getElementById('portfolio-table-body');
+        const accountWeights = document.querySelectorAll('.account-weight');
+
+        // Parse formatted number
+        function parseNum(str) {
+            return parseInt(str.replace(/[^0-9.-]/g, ''), 10) || 0;
+        }
+
+        // Format number as KRW
+        function formatKRW(num) {
+            if (num === 0) return '₩0';
+            return '₩' + Math.round(num).toLocaleString('ko-KR');
+        }
+
+        // Format percentage
+        function formatPercent(num) {
+            return (num * 100).toFixed(2) + '%';
+        }
+
+        // Get badge class
+        function getBadgeClass(account) {
+            if (account === 'ISA') return 'badge-isa';
+            if (account === '연금') return 'badge-pension';
+            return 'badge-normal';
+        }
+
+        // Get row class
+        function getRowClass(account) {
+            if (account === 'ISA') return 'isa-row';
+            if (account === '연금') return 'pension-row';
+            return '';
+        }
+
+        // Calculate and render
+        function calculate() {
+            const monthlyInput = parseNum(monthlyInputEl.value);
+            const dividendMedian = parseNum(dividendMedianEl.value);
+            const addDividend = addDividendToggle.checked;
+
+            // Parse account weights
+            let normalWeight = 0, isaWeight = 0, pensionWeight = 0;
+            accountWeights.forEach(input => {
+                const val = parseFloat(input.value.replace('%', '')) / 100;
+                if (input.dataset.account === 'normal') normalWeight = val;
+                if (input.dataset.account === 'isa') isaWeight = val;
+                if (input.dataset.account === 'pension') pensionWeight = val;
+            });
+
+            // Calculate monthly contributions per account
+            // 일반: monthlyInput * normalWeight + (addDividend ? dividendMedian : 0)
+            const normalMonthly = monthlyInput * normalWeight + (addDividend ? dividendMedian : 0);
+            const isaMonthly = monthlyInput * isaWeight;
+            const pensionMonthly = monthlyInput * pensionWeight;
+
+            // Update account table
+            document.getElementById('normal-monthly').textContent = formatKRW(normalMonthly);
+            document.getElementById('normal-yearly').textContent = formatKRW(normalMonthly * 12);
+            document.getElementById('isa-monthly').textContent = formatKRW(isaMonthly);
+            document.getElementById('isa-yearly').textContent = formatKRW(isaMonthly * 12);
+            document.getElementById('pension-monthly').textContent = formatKRW(pensionMonthly);
+            document.getElementById('pension-yearly').textContent = formatKRW(pensionMonthly * 12);
+
+            // Count dividend stocks (일반 with weight > 0)
+            const dividendStocks = portfolioData.filter(p => p.account === '일반' && p.weight > 0);
+            const dividendStockCount = dividendStocks.length;
+
+            // Calculate portfolio items
+            let totalMonthlyInvest = 0;
+            let totalYearlyInvest = 0;
+            let totalMonthlyDividend = 0;
+            let totalYearlyDividend = 0;
+
+            let html = '';
+            portfolioData.forEach(item => {
+                let monthlyInvest = 0;
+
+                if (item.account === '일반') {
+                    monthlyInvest = normalMonthly * item.weight;
+                    if (addDividend && item.weight > 0 && dividendStockCount > 0) {
+                        monthlyInvest = normalMonthly * item.weight + (dividendMedian / dividendStockCount);
+                    }
+                    // Actually per the formula: O = F16 * N + if(B13, B19/8, 0)
+                    // F16 = normalMonthly, and dividend count is 8
+                    monthlyInvest = normalMonthly * item.weight;
+                    if (addDividend && item.weight > 0) {
+                        monthlyInvest += dividendMedian / 8;
+                    }
+                } else if (item.account === 'ISA') {
+                    monthlyInvest = isaMonthly * item.weight;
+                } else if (item.account === '연금') {
+                    monthlyInvest = item.weight > 0 ? pensionMonthly * item.weight : 0;
+                }
+
+                const yearlyInvest = monthlyInvest * 12;
+                const monthlyDivIncrease = item.dividendRate * monthlyInvest;
+                const yearlyDivIncrease = yearlyInvest * item.dividendRate;
+
+                totalMonthlyInvest += monthlyInvest;
+                totalYearlyInvest += yearlyInvest;
+                totalMonthlyDividend += monthlyDivIncrease;
+                totalYearlyDividend += yearlyDivIncrease;
+
+                const numClass = yearlyDivIncrease > 0 ? 'num-positive' : 'num-zero';
+                const rowClass = getRowClass(item.account);
+
+                html += `<tr class="${rowClass}">
+                    <td><strong>${item.name}</strong></td>
+                    <td><span class="badge ${getBadgeClass(item.account)}">${item.account}</span></td>
+                    <td>${formatPercent(item.weight)}</td>
+                    <td>${formatKRW(monthlyInvest)}</td>
+                    <td>${formatKRW(yearlyInvest)}</td>
+                    <td>${formatPercent(item.dividendRate)}</td>
+                    <td class="${numClass}">${formatKRW(monthlyDivIncrease)}</td>
+                    <td class="${numClass}">${formatKRW(yearlyDivIncrease)}</td>
+                </tr>`;
+            });
+
+            portfolioTableBody.innerHTML = html;
+
+            // Update summary
+            document.getElementById('sum-monthly-invest').textContent = formatKRW(totalMonthlyInvest);
+            document.getElementById('sum-yearly-invest').textContent = formatKRW(totalYearlyInvest);
+            document.getElementById('sum-monthly-dividend').textContent = formatKRW(totalMonthlyDividend);
+            document.getElementById('sum-yearly-dividend').textContent = formatKRW(totalYearlyDividend);
+        }
+
+        // Format input on blur
+        function formatInputOnBlur(e) {
+            const val = parseNum(e.target.value);
+            e.target.value = val.toLocaleString('ko-KR');
+        }
+
+        // Event listeners
+        monthlyInputEl.addEventListener('input', calculate);
+        monthlyInputEl.addEventListener('blur', formatInputOnBlur);
+        dividendMedianEl.addEventListener('input', calculate);
+        dividendMedianEl.addEventListener('blur', formatInputOnBlur);
+        addDividendToggle.addEventListener('change', calculate);
+        accountWeights.forEach(input => {
+            input.addEventListener('input', calculate);
+        });
+
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
