@@ -32,6 +32,14 @@
 ### 6. BackTest2
 - **설명**: 나스닥 지수 등을 활용한 추가적인 백테스트 시스템입니다.
 
+### 7. StockAnalyzer (New)
+- **설명**: 실시간 주식 데이터 분석 도구입니다.
+- **주요 기능**:
+  - 티커 자동완성 및 직접 입력 검색
+  - 기간별(3M, 6M, 1Y, YTD) Beta, 변동성, MDD 계산
+  - Plotly 기반 캔들스틱 차트 시각화
+- **실행**: `cd StockAnalyzer && streamlit run app.py`
+
 ---
 
 ## 설치 및 실행 방법
