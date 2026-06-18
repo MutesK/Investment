@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20 rounded-3xl p-8 mb-8">
+        <div class="relative z-10">
+            <h1 class="text-3xl font-bold mb-2">Welcome back to InvestmentHub</h1>
+            <p class="text-slate-400 max-w-xl">Your unified command center for market analysis, backtesting, and automated portfolio management.</p>
+        </div>
+        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full -mr-20 -mt-20"></div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for stat in stats %}
+        <div class="bg-dark-card border border-dark-border p-6 rounded-2xl hover:border-blue-500/50 transition-all group">
+            <div class="flex justify-between items-start mb-4">
+                <p class="text-sm text-slate-400 font-medium">{{ stat.label }}</p>
+                <span class="text-xs px-2 py-1 rounded-lg {% if stat.positive %}bg-green-500/10 text-green-500{% else %}bg-red-500/10 text-red-500{% endif %}">
+                    {{ stat.change }}
+                </span>
+            </div>
+            <p class="text-2xl font-bold group-hover:text-blue-500 transition-colors">{{ stat.value }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-6">
+            <h3 class="text-xl font-bold flex items-center gap-2">
+                <i data-lucide="zap" class="text-yellow-500 w-5 h-5"></i>
+                Performance Summary
+            </h3>
+            <div class="bg-dark-card border border-dark-border rounded-3xl p-8 h-[400px] flex items-center justify-center italic text-slate-500">
+                Performance chart will be integrated here...
+            </div>
+        </div>
+        
+        <div class="space-y-6">
+            <h3 class="text-xl font-bold flex items-center gap-2">
+                <i data-lucide="compass" class="text-blue-500 w-5 h-5"></i>
+                Quick Actions
+            </h3>
+            <div class="space-y-3">
+                <button class="w-full flex items-center justify-between p-4 bg-dark-card border border-dark-border rounded-2xl hover:bg-slate-800 transition-all text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
+                            <i data-lucide="plus"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">New Backtest</p>
+                            <p class="text-xs text-slate-500">Test a new strategy</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-slate-600"></i>
+                </button>
+                <button class="w-full flex items-center justify-between p-4 bg-dark-card border border-dark-border rounded-2xl hover:bg-slate-800 transition-all text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-500/10 text-purple-500 rounded-xl flex items-center justify-center">
+                            <i data-lucide="search"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">Analyze Ticker</p>
+                            <p class="text-xs text-slate-500">Quick stock metrics</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-slate-600"></i>
+                </button>
+                <button class="w-full flex items-center justify-between p-4 bg-dark-card border border-dark-border rounded-2xl hover:bg-slate-800 transition-all text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-500/10 text-green-500 rounded-xl flex items-center justify-center">
+                            <i data-lucide="settings"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">Bot Settings</p>
+                            <p class="text-xs text-slate-500">Manage trading rules</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-slate-600"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

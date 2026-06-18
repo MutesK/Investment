@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestmentHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-item:hover { background-color: rgba(59, 130, 246, 0.1); }
+        .sidebar-item.active { background-color: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            border: '#334155',
+                            text: '#f8fafc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-bg text-dark-text min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-dark-border flex flex-col hidden md:flex">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i data-lucide="trending-up" class="text-white w-5 h-5"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">InvestmentHub</h1>
+        </div>
+        
+        <nav class="flex-1 px-4 space-y-2 mt-4">
+            <a href="{{ url_for('dashboard.index') }}" class="sidebar-item {% if request.endpoint == 'dashboard.index' %}active{% endif %} flex items-center gap-3 px-4 py-3 rounded-xl transition-all">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="font-medium">Dashboard</span>
+            </a>
+            <a href="{{ url_for('analyzer.index') }}" class="sidebar-item {% if request.endpoint == 'analyzer.index' %}active{% endif %} flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white transition-all">
+                <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                <span class="font-medium">Market Analyzer</span>
+            </a>
+            <a href="{{ url_for('backtest.index') }}" class="sidebar-item {% if request.endpoint == 'backtest.index' %}active{% endif %} flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white transition-all">
+                <i data-lucide="history" class="w-5 h-5"></i>
+                <span class="font-medium">Backtesting</span>
+            </a>
+            <a href="{{ url_for('portfolio.index') }}" class="sidebar-item {% if request.endpoint == 'portfolio.index' %}active{% endif %} flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white transition-all">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                <span class="font-medium">Value Rebalancing</span>
+            </a>
+            <a href="{{ url_for('dividend.index') }}" class="sidebar-item {% if request.endpoint == 'dividend.index' %}active{% endif %} flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white transition-all">
+                <i data-lucide="gift" class="w-5 h-5"></i>
+                <span class="font-medium">Dividend Planner</span>
+            </a>
+            <a href="#" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white transition-all opacity-50 cursor-not-allowed">
+                <i data-lucide="bot" class="w-5 h-5"></i>
+                <span class="font-medium">Trading Bot (Coming)</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-dark-border">
+            <div class="bg-dark-card p-4 rounded-xl border border-dark-border">
+                <p class="text-xs text-slate-400 mb-1">Status</p>
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm font-medium">Market Live</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <!-- Top Nav -->
+        <header class="h-16 border-b border-dark-border flex items-center justify-between px-8 bg-dark-bg/50 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-4">
+                <button class="md:hidden text-slate-400"><i data-lucide="menu"></i></button>
+                <h2 class="text-lg font-semibold">{% block title %}Dashboard Overview{% endblock %}</h2>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="p-2 rounded-lg hover:bg-dark-card text-slate-400 transition-all">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500"></div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-y-auto p-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

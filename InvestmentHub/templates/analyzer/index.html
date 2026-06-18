@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Market Analyzer{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <!-- Search Bar -->
+    <div class="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-xl">
+        <form action="{{ url_for('analyzer.index') }}" method="GET" class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1 relative">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5"></i>
+                <input type="text" name="ticker" value="{{ ticker or '' }}" placeholder="Enter Ticker (e.g. AAPL, TSLA, TQQQ)" 
+                       class="w-full bg-dark-bg border border-dark-border rounded-2xl py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 transition-all font-medium">
+            </div>
+            <div class="flex gap-4">
+                <select name="period" class="bg-dark-bg border border-dark-border rounded-2xl px-6 py-3 focus:outline-none focus:border-blue-500 font-medium">
+                    <option value="3M" {% if period == '3M' %}selected{% endif %}>3 Months</option>
+                    <option value="6M" {% if period == '6M' %}selected{% endif %}>6 Months</option>
+                    <option value="1Y" {% if period == '1Y' %}selected{% endif %}>1 Year</option>
+                    <option value="YTD" {% if period == 'YTD' %}selected{% endif %}>YTD</option>
+                </select>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-2xl transition-all flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    Analyze
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if error %}
+    <div class="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-2xl flex items-center gap-3">
+        <i data-lucide="alert-circle"></i>
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+
+    {% if ticker and not error %}
+    <!-- Results Header -->
+    <div class="flex justify-between items-end">
+        <div>
+            <h1 class="text-4xl font-black">{{ ticker }}</h1>
+            <p class="text-slate-400">Market Analysis for {{ period }} period</p>
+        </div>
+        <div class="flex gap-2">
+            <span class="px-4 py-2 bg-blue-500/10 text-blue-500 rounded-xl font-bold border border-blue-500/20">Benchmark: SPY</span>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-dark-card border border-dark-border p-8 rounded-3xl group hover:border-blue-500/50 transition-all">
+            <p class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Beta (vs SPY)</p>
+            <p class="text-4xl font-black group-hover:text-blue-500 transition-colors">{{ metrics.beta }}</p>
+            <p class="text-xs text-slate-500 mt-2">Market Sensitivity</p>
+        </div>
+        <div class="bg-dark-card border border-dark-border p-8 rounded-3xl group hover:border-purple-500/50 transition-all">
+            <p class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Volatility (Annualized)</p>
+            <p class="text-4xl font-black group-hover:text-purple-500 transition-colors">{{ metrics.volatility }}%</p>
+            <p class="text-xs text-slate-500 mt-2">Historical Risk</p>
+        </div>
+        <div class="bg-dark-card border border-dark-border p-8 rounded-3xl group hover:border-red-500/50 transition-all">
+            <p class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Max Drawdown</p>
+            <p class="text-4xl font-black group-hover:text-red-500 transition-colors">{{ metrics.mdd }}%</p>
+            <p class="text-xs text-slate-500 mt-2">Peak-to-Trough Decline</p>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="space-y-6">
+        <div class="bg-dark-card border border-dark-border p-4 rounded-3xl">
+            <h3 class="text-lg font-bold p-4 pb-0 flex items-center gap-2">
+                <i data-lucide="candlestick-chart"></i> Price History
+            </h3>
+            <div id="chart" class="w-full min-h-[500px]"></div>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border p-4 rounded-3xl">
+            <h3 class="text-lg font-bold p-4 pb-0 flex items-center gap-2">
+                <i data-lucide="trending-down"></i> Drawdown (%)
+            </h3>
+            <div id="mdd_chart" class="w-full min-h-[300px]"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        const graphData = {{ graph_json | safe }};
+        Plotly.newPlot('chart', graphData.data, graphData.layout, {responsive: true, displayModeBar: false});
+
+        const mddData = {{ mdd_json | safe }};
+        Plotly.newPlot('mdd_chart', mddData.data, mddData.layout, {responsive: true, displayModeBar: false});
+    </script>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4">
+            <i data-lucide="line-chart" class="w-10 h-10 text-slate-600"></i>
+        </div>
+        <h2 class="text-2xl font-bold">Ready to analyze</h2>
+        <p class="text-slate-500 max-w-sm">Enter a stock ticker above to get instant insights into its performance, volatility, and market correlation.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

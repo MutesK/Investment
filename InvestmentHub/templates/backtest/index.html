@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}Backtesting Engine{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Sidebar: Portfolio Builder -->
+        <div class="space-y-6">
+            <div class="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-xl">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="layout-list" class="text-blue-500"></i>
+                    Portfolio Builder
+                </h3>
+                
+                <!-- Add Asset Form -->
+                <div class="space-y-4 mb-6 pb-6 border-b border-dark-border">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input id="new_ticker" type="text" placeholder="Ticker" class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                        <input id="new_initial" type="number" placeholder="Initial KRW" class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <input id="new_monthly" type="number" placeholder="Monthly Savings (KRW)" class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                    <button onclick="addAssetToBacktest()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="plus"></i> Add to List
+                    </button>
+                </div>
+
+                <!-- Asset Table -->
+                <div id="assetTable" class="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
+                    <!-- JS injected -->
+                </div>
+
+                <!-- Global Settings -->
+                <div class="space-y-4 pt-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-slate-400 font-bold uppercase mb-2 block">Start Date</label>
+                            <input id="start_date" type="date" value="2015-01-01" class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 font-bold uppercase mb-2 block">End Date</label>
+                            <input id="end_date" type="date" value="{{ today_date }}" class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 font-bold uppercase mb-2 block">Investment Day</label>
+                        <input id="investment_day" type="number" value="1" min="1" max="28" class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 focus:outline-none focus:border-blue-500">
+                    </div>
+
+                    <button onclick="runBacktest()" id="runBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 mt-4">
+                        <i data-lucide="play" class="w-5 h-5"></i>
+                        Run Backtest
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Results Area -->
+        <div class="lg:col-span-2 space-y-6">
+            <div id="resultsArea" class="hidden space-y-6">
+                <!-- Summary Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-dark-card border border-dark-border p-4 rounded-2xl">
+                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Final Asset</p>
+                        <p id="sumFinal" class="text-xl font-black text-blue-500">-</p>
+                    </div>
+                    <div class="bg-dark-card border border-dark-border p-4 rounded-2xl">
+                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Total ROI</p>
+                        <p id="sumROI" class="text-xl font-black text-green-500">-</p>
+                    </div>
+                    <div class="bg-dark-card border border-dark-border p-4 rounded-2xl">
+                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">vs SPY</p>
+                        <p id="sumSPY" class="text-xl font-black text-purple-500">-</p>
+                    </div>
+                    <div class="bg-dark-card border border-dark-border p-4 rounded-2xl">
+                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">MDD</p>
+                        <p id="sumMDD" class="text-xl font-black text-red-500">-</p>
+                    </div>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-xl">
+                    <div id="mainChart" class="w-full min-h-[450px]"></div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-dark-card/30 border border-dashed border-dark-border rounded-3xl">
+                <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="history" class="w-10 h-10 text-slate-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold">Build Your Portfolio</h2>
+                <p class="text-slate-500 max-w-sm">Add assets to your list on the left, set the dates, and run the backtest to see the results.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    let backtestAssets = [];
+
+    function addAssetToBacktest() {
+        const ticker = document.getElementById('new_ticker').value.toUpperCase();
+        const initial = document.getElementById('new_initial').value;
+        const monthly = document.getElementById('new_monthly').value;
+
+        if (!ticker || !initial || !monthly) {
+            alert('Please fill all asset fields');
+            return;
+        }
+
+        backtestAssets.push({ ticker, initial, monthly });
+        renderAssetTable();
+        
+        document.getElementById('new_ticker').value = '';
+        document.getElementById('new_initial').value = '';
+        document.getElementById('new_monthly').value = '';
+    }
+
+    function removeAsset(index) {
+        backtestAssets.splice(index, 1);
+        renderAssetTable();
+    }
+
+    function renderAssetTable() {
+        const container = document.getElementById('assetTable');
+        if (backtestAssets.length === 0) {
+            container.innerHTML = '<p class="text-xs text-slate-500 italic text-center py-4">No assets added yet.</p>';
+            return;
+        }
+
+        container.innerHTML = backtestAssets.map((a, i) => `
+            <div class="flex items-center justify-between p-3 bg-dark-bg border border-dark-border rounded-xl">
+                <div>
+                    <p class="font-bold text-white">${a.ticker}</p>
+                    <p class="text-[10px] text-slate-500">Init: ${parseInt(a.initial).toLocaleString()}₩ | Mon: ${parseInt(a.monthly).toLocaleString()}₩</p>
+                </div>
+                <button onclick="removeAsset(${i})" class="text-red-500 hover:bg-red-500/10 p-1 rounded-lg">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    async function runBacktest() {
+        if (backtestAssets.length === 0) {
+            alert('Please add at least one asset to the portfolio');
+            return;
+        }
+
+        const btn = document.getElementById('runBtn');
+        const emptyState = document.getElementById('emptyState');
+        const resultsArea = document.getElementById('resultsArea');
+        
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Processing...`;
+        lucide.createIcons();
+
+        const data = {
+            assets: backtestAssets,
+            start_date: document.getElementById('start_date').value,
+            end_date: document.getElementById('end_date').value,
+            investment_day: document.getElementById('investment_day').value
+        };
+
+        try {
+            const response = await fetch('/backtest/run/dca', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.error) {
+                alert(result.error);
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            resultsArea.classList.remove('hidden');
+
+            document.getElementById('sumFinal').innerText = result.summary.final_value + ' ₩';
+            document.getElementById('sumROI').innerText = result.summary.roi;
+            document.getElementById('sumSPY').innerText = result.summary.spy_roi;
+            document.getElementById('sumMDD').innerText = result.summary.mdd;
+
+            Plotly.newPlot('mainChart', result.chart.data, result.chart.layout, {responsive: true, displayModeBar: false});
+
+        } catch (e) {
+            console.error(e);
+            alert('An error occurred while running the backtest.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="play" class="w-5 h-5"></i> Run Backtest`;
+            lucide.createIcons();
+        }
+    }
+
+    renderAssetTable();
+</script>
+{% endblock %}
