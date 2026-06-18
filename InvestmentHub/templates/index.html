@@ -4,13 +4,31 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-8">
-    <!-- Hero Section -->
-    <div class="relative overflow-hidden bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20 rounded-3xl p-8 mb-8">
+    <!-- Hero Section & Upload -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20 rounded-3xl p-8 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div class="relative z-10">
             <h1 class="text-3xl font-bold mb-2">Welcome back to InvestmentHub</h1>
             <p class="text-slate-400 max-w-xl">Your unified command center for market analysis, backtesting, and automated portfolio management.</p>
         </div>
-        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full -mr-20 -mt-20"></div>
+        
+        <!-- File Upload Form -->
+        <div class="relative z-10 bg-dark-bg/50 p-4 rounded-2xl border border-dark-border backdrop-blur-sm w-full md:w-auto">
+            <form action="{{ url_for('dashboard.upload_excel') }}" method="post" enctype="multipart/form-data" class="flex items-center gap-3">
+                <input type="file" name="file" accept=".xlsx" required
+                    class="block w-full text-sm text-slate-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-xl file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-600 file:text-white
+                    hover:file:bg-blue-700 transition-colors">
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors whitespace-nowrap">
+                    동기화
+                </button>
+            </form>
+            <p class="text-xs text-slate-500 mt-2">뱅크샐러드 엑셀 내보내기 파일을 업로드하세요.</p>
+        </div>
+        
+        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full -mr-20 -mt-20 pointer-events-none"></div>
     </div>
 
     <!-- Stats Grid -->
@@ -19,71 +37,243 @@
         <div class="bg-dark-card border border-dark-border p-6 rounded-2xl hover:border-blue-500/50 transition-all group">
             <div class="flex justify-between items-start mb-4">
                 <p class="text-sm text-slate-400 font-medium">{{ stat.label }}</p>
+                {% if stat.change %}
                 <span class="text-xs px-2 py-1 rounded-lg {% if stat.positive %}bg-green-500/10 text-green-500{% else %}bg-red-500/10 text-red-500{% endif %}">
                     {{ stat.change }}
                 </span>
+                {% endif %}
             </div>
             <p class="text-2xl font-bold group-hover:text-blue-500 transition-colors">{{ stat.value }}</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- Quick Actions -->
+    <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 space-y-6">
-            <h3 class="text-xl font-bold flex items-center gap-2">
-                <i data-lucide="zap" class="text-yellow-500 w-5 h-5"></i>
-                Performance Summary
-            </h3>
+        <!-- Left Column -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Performance Summary -->
+            <div class="space-y-6">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="trending-up" class="text-yellow-500 w-5 h-5"></i>
+                    총자산 증감 추이 및 벤치마크 비교
+                </h3>
+                <div class="bg-dark-card border border-dark-border rounded-3xl p-6 h-[400px]">
+                    {% if chart_dates %}
+                    <div id="performanceChart" class="w-full h-full"></div>
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center italic text-slate-500">
+                        과거 자산 데이터가 충분하지 않습니다.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 투자 자산 포트폴리오 -->
+            <div class="space-y-6">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="text-purple-500 w-5 h-5"></i>
+                    투자 자산 포트폴리오
+                </h3>
+                
+                {% if investments %}
+            <div class="bg-dark-card border border-dark-border rounded-3xl p-6 h-[400px]">
+                <div id="investmentChart" class="w-full h-full"></div>
+            </div>
+            
+            <div class="bg-dark-card border border-dark-border rounded-3xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-dark-bg border-b border-dark-border text-xs uppercase text-slate-400">
+                            <tr>
+                                <th class="px-6 py-4 font-medium">종목명</th>
+                                <th class="px-6 py-4 font-medium text-right">투자 원금</th>
+                                <th class="px-6 py-4 font-medium text-right">평가 금액</th>
+                                <th class="px-6 py-4 font-medium text-right">수익률</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dark-border">
+                            {% for inv in investments %}
+                            <tr class="hover:bg-dark-bg transition-colors text-sm">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">{{ inv.name }}</div>
+                                    <div class="text-xs text-slate-500">{{ inv.institution }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-right text-slate-300">{{ "{:,.0f}".format(inv.principal) }} 원</td>
+                                <td class="px-6 py-4 text-right text-slate-300">{{ "{:,.0f}".format(inv.value) }} 원</td>
+                                <td class="px-6 py-4 text-right">
+                                    <span class="{% if inv.return_rate > 0 %}text-green-500{% elif inv.return_rate < 0 %}text-red-500{% else %}text-slate-400{% endif %}">
+                                        {{ "{:+.2f}".format(inv.return_rate) }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
             <div class="bg-dark-card border border-dark-border rounded-3xl p-8 h-[400px] flex items-center justify-center italic text-slate-500">
-                Performance chart will be integrated here...
+                엑셀 데이터를 동기화하여 투자 자산을 불러오세요.
+            </div>
+                {% endif %}
             </div>
         </div>
         
+        <!-- Right Column: Real Estate & Accounts -->
         <div class="space-y-6">
             <h3 class="text-xl font-bold flex items-center gap-2">
+                <i data-lucide="home" class="text-blue-500 w-5 h-5"></i>
+                실물 자산 및 계좌
+            </h3>
+            
+            <div class="bg-dark-card border border-dark-border rounded-3xl p-6 space-y-6">
+                <!-- Real Estate -->
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">부동산</h4>
+                    {% if real_estate %}
+                    <div class="space-y-3">
+                        {% for re in real_estate %}
+                        <div class="flex justify-between items-center bg-dark-bg p-3 rounded-xl border border-dark-border">
+                            <span class="text-sm text-white font-medium">{{ re.name }}</span>
+                            <span class="text-sm text-blue-400 font-semibold">{{ "{:,.0f}".format(re.value) }} 원</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-500 italic">등록된 부동산이 없습니다.</p>
+                    {% endif %}
+                </div>
+                
+                <hr class="border-dark-border">
+                
+                <!-- Accounts -->
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">계좌 잔고</h4>
+                    {% if accounts %}
+                    <div class="space-y-3">
+                        {% for acc in accounts %}
+                        <div class="flex justify-between items-center bg-dark-bg p-3 rounded-xl border border-dark-border">
+                            <span class="text-sm text-slate-300">{{ acc.name }}</span>
+                            <span class="text-sm text-white font-medium">{{ "{:,.0f}".format(acc.value) }} 원</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-500 italic">등록된 계좌가 없습니다.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <h3 class="text-xl font-bold flex items-center gap-2 pt-4">
                 <i data-lucide="compass" class="text-blue-500 w-5 h-5"></i>
                 Quick Actions
             </h3>
             <div class="space-y-3">
-                <button class="w-full flex items-center justify-between p-4 bg-dark-card border border-dark-border rounded-2xl hover:bg-slate-800 transition-all text-left">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
-                            <i data-lucide="plus"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-sm">New Backtest</p>
-                            <p class="text-xs text-slate-500">Test a new strategy</p>
-                        </div>
-                    </div>
-                    <i data-lucide="chevron-right" class="text-slate-600"></i>
-                </button>
-                <button class="w-full flex items-center justify-between p-4 bg-dark-card border border-dark-border rounded-2xl hover:bg-slate-800 transition-all text-left">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-purple-500/10 text-purple-500 rounded-xl flex items-center justify-center">
-                            <i data-lucide="search"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-sm">Analyze Ticker</p>
-                            <p class="text-xs text-slate-500">Quick stock metrics</p>
-                        </div>
-                    </div>
-                    <i data-lucide="chevron-right" class="text-slate-600"></i>
-                </button>
-                <button class="w-full flex items-center justify-between p-4 bg-dark-card border border-dark-border rounded-2xl hover:bg-slate-800 transition-all text-left">
+                <a href="{{ url_for('ledger.index') }}" class="w-full flex items-center justify-between p-4 bg-dark-card border border-dark-border rounded-2xl hover:bg-slate-800 transition-all text-left">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-green-500/10 text-green-500 rounded-xl flex items-center justify-center">
-                            <i data-lucide="settings"></i>
+                            <i data-lucide="book-open"></i>
                         </div>
                         <div>
-                            <p class="font-semibold text-sm">Bot Settings</p>
-                            <p class="text-xs text-slate-500">Manage trading rules</p>
+                            <p class="font-semibold text-sm">가계부 내역 보기</p>
+                            <p class="text-xs text-slate-500">수입 및 지출 분석</p>
                         </div>
                     </div>
                     <i data-lucide="chevron-right" class="text-slate-600"></i>
-                </button>
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+{% if investments %}
+<!-- Plotly.js for Charts -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var labels = {{ inv_labels | tojson }};
+        var values = {{ inv_values | tojson }};
+        
+        var data = [{
+            values: values,
+            labels: labels,
+            type: 'pie',
+            hole: 0.6,
+            textinfo: 'percent',
+            hoverinfo: 'label+value',
+            sort: true,
+            direction: 'clockwise',
+            marker: {
+                colors: [
+                    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
+                    '#ec4899', '#06b6d4', '#64748b', '#14b8a6', '#f43f5e',
+                    '#1d4ed8', '#b91c1c', '#047857', '#b45309', '#6d28d9'
+                ]
+            }
+        }];
+        
+        var layout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: { t: 20, b: 20, l: 20, r: 20 },
+            showlegend: true,
+            legend: {
+                font: { color: '#94a3b8' },
+                orientation: 'v',
+                y: 0.5,
+                x: 1.1
+            }
+        };
+        
+        var config = { responsive: true, displayModeBar: false };
+        Plotly.newPlot('investmentChart', data, layout, config);
+    });
+</script>
+{% endif %}
+
+{% if chart_dates %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var p_labels = {{ chart_dates | tojson }};
+        var p_asset = {{ asset_pcts | tojson }};
+        var p_spy = {{ spy_pcts | tojson }};
+        var p_kospi = {{ kospi_pcts | tojson }};
+        
+        var trace1 = {
+            x: p_labels,
+            y: p_asset,
+            mode: 'lines+markers',
+            name: '내 순자산',
+            line: {color: '#3b82f6', width: 3},
+            marker: {size: 8, color: '#3b82f6'}
+        };
+        var trace2 = {
+            x: p_labels,
+            y: p_spy,
+            mode: 'lines',
+            name: 'SPY (S&P 500)',
+            line: {color: '#ef4444', width: 2, dash: 'dot'}
+        };
+        var trace3 = {
+            x: p_labels,
+            y: p_kospi,
+            mode: 'lines',
+            name: 'KOSPI',
+            line: {color: '#10b981', width: 2, dash: 'dot'}
+        };
+        var p_data = [trace1, trace2, trace3];
+        var p_layout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: { t: 20, b: 40, l: 40, r: 20 },
+            showlegend: true,
+            legend: { font: { color: '#94a3b8' }, orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center' },
+            xaxis: { gridcolor: '#334155', tickfont: {color: '#94a3b8'} },
+            yaxis: { gridcolor: '#334155', tickfont: {color: '#94a3b8'}, ticksuffix: '%' }
+        };
+        Plotly.newPlot('performanceChart', p_data, p_layout, {responsive: true, displayModeBar: false});
+    });
+</script>
+{% endif %}
 {% endblock %}

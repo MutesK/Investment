@@ -15,6 +15,7 @@ from routes.analyzer import analyzer_bp
 from routes.backtest import backtest_bp
 from routes.portfolio import portfolio_bp
 from routes.dividend import dividend_bp
+from routes.ledger import ledger_bp
 
 from models import VRAsset # Ensure models are tracked
 
@@ -23,6 +24,7 @@ app.register_blueprint(analyzer_bp)
 app.register_blueprint(backtest_bp)
 app.register_blueprint(portfolio_bp)
 app.register_blueprint(dividend_bp)
+app.register_blueprint(ledger_bp)
 
 if __name__ == '__main__':
     with app.app_context():
