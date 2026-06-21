@@ -24,6 +24,7 @@ def index():
     # Historical Net Worth from actual snapshots & Benchmark Comparison
     chart_dates = []
     asset_pcts = []
+    asset_vals = []
     spy_pcts = []
     kospi_pcts = []
     
@@ -56,6 +57,7 @@ def index():
             for snap in snapshots:
                 chart_dates.append(snap.date)
                 asset_pcts.append(((snap.net_worth / base_nw) - 1) * 100)
+                asset_vals.append(snap.net_worth)
                 
                 # Find closest benchmark data
                 snap_dt = pd.Timestamp(snap.date)
@@ -75,11 +77,12 @@ def index():
             # Only one snapshot - show a single point at 0%
             chart_dates.append(snapshots[0].date)
             asset_pcts.append(0.0)
+            asset_vals.append(snapshots[0].net_worth)
             spy_pcts.append(0.0)
             kospi_pcts.append(0.0)
     except Exception as e:
         print("Chart calculation error:", e)
-
+ 
     # Categorize for charts/lists
     real_estate = [a for a in assets if a.category == '부동산']
     investments = [a for a in assets if a.category == '투자']
@@ -95,11 +98,11 @@ def index():
     # Investment Chart Data
     inv_labels = [i.name for i in investments if i.value > 0]
     inv_values = [i.value for i in investments if i.value > 0]
-
+ 
     return render_template('index.html', stats=stats, investments=investments, 
                            inv_labels=inv_labels, inv_values=inv_values,
                            real_estate=real_estate, accounts=accounts,
-                           chart_dates=chart_dates, asset_pcts=asset_pcts,
+                           chart_dates=chart_dates, asset_pcts=asset_pcts, asset_vals=asset_vals,
                            spy_pcts=spy_pcts, kospi_pcts=kospi_pcts)
 
 @dashboard_bp.route('/upload_excel', methods=['POST'])
@@ -115,8 +118,11 @@ def upload_excel():
     
     if file and file.filename.endswith('.xlsx'):
         try:
+            # Load the Excel file once
+            xl = pd.ExcelFile(file, engine='openpyxl')
+            
             # 1. Parse '가계부 내역' (Ledger)
-            df_ledger = pd.read_excel(file, sheet_name='가계부 내역', engine='openpyxl')
+            df_ledger = pd.read_excel(xl, sheet_name='가계부 내역')
             df_ledger = df_ledger.fillna('')
             
             added_count = 0
@@ -147,13 +153,29 @@ def upload_excel():
                     added_count += 1
 
             # 2. Parse '뱅샐현황' (Asset Status)
-            df_assets = pd.read_excel(file, sheet_name='뱅샐현황', engine='openpyxl')
+            df_assets = pd.read_excel(xl, sheet_name='뱅샐현황')
             df_assets = df_assets.fillna('')
             
-            # Clear old asset data
-            AssetStatus.query.delete()
-            
+            # First, scan '5.투자현황' to collect all detailed investment names to avoid double counting
+            investment_names = set()
+            scan_section = None
+            for index, row in df_assets.iterrows():
+                col1 = str(row.iloc[1]).strip() if len(row) > 1 else ''
+                if '5.투자현황' in col1:
+                    scan_section = '투자'
+                    continue
+                elif '6.대출현황' in col1:
+                    scan_section = '대출'
+                    continue
+                if scan_section == '투자':
+                    if col1 in ['주식', '펀드', '채권', '암호화폐']:
+                        name = str(row.iloc[3]).strip() if len(row) > 3 else ''
+                        if name:
+                            investment_names.add(name)
+
+            parsed_assets = []
             current_section = None
+            active_category = None
             for index, row in df_assets.iterrows():
                 col1 = str(row.iloc[1]).strip() if len(row) > 1 else ''
                 col2 = str(row.iloc[2]).strip() if len(row) > 2 else ''
@@ -172,20 +194,18 @@ def upload_excel():
                     continue
                 
                 if current_section == '자산':
-                    # Real Estate
-                    if col1 == '부동산':
-                        val_str = str(row.iloc[4]) if len(row) > 4 else '0'
-                        try:
-                            val = float(val_str)
-                            db.session.add(AssetStatus(category='부동산', name=col2, value=val))
-                        except: pass
-                    # Accounts
-                    elif col2 in ['기본계좌', '연금저축', '중개형ISA', '위탁계좌', '종합계좌', '종합위탁']:
-                        val_str = str(row.iloc[4]) if len(row) > 4 else '0'
+                    if col1 != '':
+                        active_category = col1
+                    if col2 != '' and col2 not in ['상품명', '총자산', '순자산', '총부채', '자산', '부채']:
+                        # Skip if this is detailed under the investment section
+                        if col2 in investment_names:
+                            continue
+                        val_str = str(row.iloc[4]).strip() if len(row) > 4 else '0'
                         try:
                             val = float(val_str)
                             if val > 0:
-                                db.session.add(AssetStatus(category='계좌', name=col2, value=val))
+                                cat = '부동산' if active_category == '부동산' else '계좌'
+                                parsed_assets.append(AssetStatus(category=cat, name=col2, value=val))
                         except: pass
 
                 elif current_section == '투자':
@@ -199,7 +219,7 @@ def upload_excel():
                             prin = float(prin_str) if prin_str else 0.0
                             val = float(val_str) if val_str else 0.0
                             ret = float(ret_str) if ret_str else 0.0
-                            db.session.add(AssetStatus(category='투자', institution=inst, name=name, principal=prin, value=val, return_rate=ret))
+                            parsed_assets.append(AssetStatus(category='투자', institution=inst, name=name, principal=prin, value=val, return_rate=ret))
                         except: pass
 
                 elif current_section == '대출':
@@ -210,35 +230,65 @@ def upload_excel():
                         try:
                             val = float(val_str) if val_str else 0.0
                             if val > 0:
-                                db.session.add(AssetStatus(category='대출', institution=inst, name=name, value=val))
+                                parsed_assets.append(AssetStatus(category='대출', institution=inst, name=name, value=val))
                         except: pass
 
+            # Determine the snapshot date
+            snapshot_date = None
+            import re
+            all_dates = re.findall(r'\d{4}-\d{2}-\d{2}', file.filename)
+            if all_dates:
+                snapshot_date = all_dates[-1]
+            
+            if not snapshot_date and not df_ledger.empty and '날짜' in df_ledger.columns:
+                valid_dates = []
+                for d in df_ledger['날짜'].dropna().astype(str).str.strip():
+                    d_clean = d[:10]
+                    if re.match(r'^\d{4}-\d{2}-\d{2}$', d_clean):
+                        valid_dates.append(d_clean)
+                if valid_dates:
+                    snapshot_date = max(valid_dates)
+            
+            if not snapshot_date:
+                from datetime import date as date_cls
+                snapshot_date = date_cls.today().strftime('%Y-%m-%d')
+            
+            # Check if this upload is the latest dataset
+            is_latest = not NetWorthSnapshot.query.filter(NetWorthSnapshot.date > snapshot_date).first()
+            
+            if is_latest:
+                # Clear old asset data and insert new ones
+                AssetStatus.query.delete()
+                for asset in parsed_assets:
+                    db.session.add(asset)
+            
             db.session.commit()
             
-            # 3. Save a NetWorthSnapshot for this upload
-            recalc_assets = AssetStatus.query.all()
-            snap_total_assets = sum(a.value for a in recalc_assets if a.category != '대출')
-            snap_total_debt = sum(a.value for a in recalc_assets if a.category == '대출')
+            # Calculate snapshot values from parsed assets
+            snap_total_assets = sum(a.value for a in parsed_assets if a.category != '대출')
+            snap_total_debt = sum(a.value for a in parsed_assets if a.category == '대출')
             snap_net_worth = snap_total_assets - snap_total_debt
             
-            from datetime import date as date_cls
-            today_str = date_cls.today().strftime('%Y-%m-%d')
-            
-            existing_snap = NetWorthSnapshot.query.filter_by(date=today_str).first()
+            existing_snap = NetWorthSnapshot.query.filter_by(date=snapshot_date).first()
             if existing_snap:
                 existing_snap.net_worth = snap_net_worth
                 existing_snap.total_assets = snap_total_assets
                 existing_snap.total_debt = snap_total_debt
             else:
                 db.session.add(NetWorthSnapshot(
-                    date=today_str,
+                    date=snapshot_date,
                     net_worth=snap_net_worth,
                     total_assets=snap_total_assets,
                     total_debt=snap_total_debt
                 ))
             db.session.commit()
             
-            flash(f'Successfully imported {added_count} new transactions and updated Asset Status.', 'success')
+            status_msg = f'Successfully imported {added_count} new transactions and updated historical Net Worth snapshot for {snapshot_date}.'
+            if is_latest:
+                status_msg += ' Asset Status has been updated to the latest data.'
+            else:
+                status_msg += ' Dashboard asset list kept current as a newer snapshot exists.'
+            flash(status_msg, 'success')
             
         except Exception as e:
             flash(f'Error parsing file: {str(e)}', 'error')

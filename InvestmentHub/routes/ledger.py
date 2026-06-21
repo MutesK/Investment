@@ -10,20 +10,40 @@ ledger_bp = Blueprint('ledger', __name__, url_prefix='/ledger')
 def index():
     page = request.args.get('page', 1, type=int)
     category_filter = request.args.get('category', '')
-    month_filter = request.args.get('month', '')
     tx_type_filter = request.args.get('tx_type', '')
     sort_amount = request.args.get('sort_amount', '')
     
-    # Get distinct months for the filter dropdown
+    # Get distinct months and years for the filter dropdowns
     dates = db.session.query(LedgerTransaction.date).distinct().all()
     months = sorted(list(set(d[0][:7] for d in dates if d[0])), reverse=True)
+    years = sorted(list(set(d[0][:4] for d in dates if d[0])), reverse=True)
     
+    view_type = request.args.get('view_type', 'month')
+    month_filter = request.args.get('month', None)
+    year_filter = request.args.get('year', None)
+    
+    # Default to the most recent period if visiting for the first time
+    if view_type == 'month':
+        if month_filter is None:
+            month_filter = months[0] if months else ''
+        elif month_filter == 'all':
+            month_filter = ''
+        year_filter = ''
+    else:
+        if year_filter is None:
+            year_filter = years[0] if years else ''
+        elif year_filter == 'all':
+            year_filter = ''
+        month_filter = ''
+        
     # Base query for the current view
     base_query = LedgerTransaction.query
-    if month_filter:
+    if view_type == 'month' and month_filter:
         base_query = base_query.filter(LedgerTransaction.date.startswith(month_filter))
+    elif view_type == 'year' and year_filter:
+        base_query = base_query.filter(LedgerTransaction.date.startswith(year_filter))
     
-    # Fetch transactions for summary calculations (filtered by month)
+    # Fetch transactions for summary calculations (filtered by period)
     summary_transactions = base_query.all()
     
     # Calculate summaries
@@ -42,10 +62,10 @@ def index():
     sorted_expense = sorted(expense_data.items(), key=lambda x: x[1], reverse=True)
     expense_labels = [item[0] for item in sorted_expense]
     expense_values = [item[1] for item in sorted_expense]
-
+ 
     # Get distinct categories for the filter dropdown
     categories = sorted(list(set(t.main_category for t in summary_transactions if t.main_category)))
-
+ 
     # Query for the table with optional category and tx_type filters
     table_query = base_query
     if category_filter:
@@ -63,7 +83,7 @@ def index():
         
     # Paginate transactions for the list
     pagination = table_query.paginate(page=page, per_page=20, error_out=False)
-
+ 
     return render_template('ledger.html', 
                            pagination=pagination,
                            total_income=total_income,
@@ -74,7 +94,10 @@ def index():
                            categories=categories,
                            current_category=category_filter,
                            months=months,
-                           current_month=month_filter,
+                           years=years,
+                           view_type=view_type,
+                           current_month=month_filter or ('all' if month_filter == '' else ''),
+                           current_year=year_filter or ('all' if year_filter == '' else ''),
                            current_tx_type=tx_type_filter,
                            current_sort=sort_amount)
 

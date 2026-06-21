@@ -52,12 +52,25 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Left Column -->
         <div class="lg:col-span-2 space-y-8">
-            <!-- Performance Summary -->
             <div class="space-y-6">
-                <h3 class="text-xl font-bold flex items-center gap-2">
-                    <i data-lucide="trending-up" class="text-yellow-500 w-5 h-5"></i>
-                    총자산 증감 추이 및 벤치마크 비교
-                </h3>
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="trending-up" class="text-yellow-500 w-5 h-5"></i>
+                        총자산 증감 추이 및 벤치마크 비교
+                    </h3>
+                    {% if chart_dates %}
+                    <div class="flex items-center bg-dark-bg border border-dark-border rounded-lg p-0.5">
+                        <button onclick="changeChartView('daily')" id="btn-chart-daily"
+                            class="px-3 py-1 text-xs font-semibold rounded-md transition-all bg-blue-600 text-white">
+                            일간
+                        </button>
+                        <button onclick="changeChartView('monthly')" id="btn-chart-monthly"
+                            class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
+                            월간
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
                 <div class="bg-dark-card border border-dark-border rounded-3xl p-6 h-[400px]">
                     {% if chart_dates %}
                     <div id="performanceChart" class="w-full h-full"></div>
@@ -234,34 +247,78 @@
 
 {% if chart_dates %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var p_labels = {{ chart_dates | tojson }};
-        var p_asset = {{ asset_pcts | tojson }};
-        var p_spy = {{ spy_pcts | tojson }};
-        var p_kospi = {{ kospi_pcts | tojson }};
+    let dailyDates = {{ chart_dates | tojson }};
+    let dailyAssetPcts = {{ asset_pcts | tojson }};
+    let dailyAssetVals = {{ asset_vals | tojson }};
+    let dailySpyPcts = {{ spy_pcts | tojson }};
+    let dailyKospiPcts = {{ kospi_pcts | tojson }};
+    
+    let currentChartView = 'daily';
+
+    function getMonthlyData() {
+        let monthly = {};
+        for (let i = 0; i < dailyDates.length; i++) {
+            let monthKey = dailyDates[i].substring(0, 7);
+            monthly[monthKey] = i;
+        }
+        let sortedMonths = Object.keys(monthly).sort();
         
+        let dates = [], assetPcts = [], assetVals = [], spyPcts = [], kospiPcts = [];
+        for (let m of sortedMonths) {
+            let idx = monthly[m];
+            dates.push(m);
+            assetPcts.push(dailyAssetPcts[idx]);
+            assetVals.push(dailyAssetVals[idx]);
+            spyPcts.push(dailySpyPcts[idx]);
+            kospiPcts.push(dailyKospiPcts[idx]);
+        }
+        return { dates, assetPcts, assetVals, spyPcts, kospiPcts };
+    }
+
+    function renderChart(viewType) {
+        let dataSrc;
+        if (viewType === 'monthly') {
+            dataSrc = getMonthlyData();
+        } else {
+            dataSrc = {
+                dates: dailyDates,
+                assetPcts: dailyAssetPcts,
+                assetVals: dailyAssetVals,
+                spyPcts: dailySpyPcts,
+                kospiPcts: dailyKospiPcts
+            };
+        }
+
         var trace1 = {
-            x: p_labels,
-            y: p_asset,
+            x: dataSrc.dates,
+            y: dataSrc.assetPcts,
+            text: dataSrc.assetVals.map(val => Math.round(val).toLocaleString() + ' 원'),
+            customdata: dataSrc.assetPcts.map(val => (val >= 0 ? '+' : '') + val.toFixed(2) + '%'),
+            hovertemplate: '날짜: %{x}<br>수익률: %{customdata}<br>순자산: %{text}<extra></extra>',
             mode: 'lines+markers',
             name: '내 순자산',
             line: {color: '#3b82f6', width: 3},
             marker: {size: 8, color: '#3b82f6'}
         };
         var trace2 = {
-            x: p_labels,
-            y: p_spy,
+            x: dataSrc.dates,
+            y: dataSrc.spyPcts,
+            customdata: dataSrc.spyPcts.map(val => (val >= 0 ? '+' : '') + val.toFixed(2) + '%'),
+            hovertemplate: '날짜: %{x}<br>SPY: %{customdata}<extra></extra>',
             mode: 'lines',
             name: 'SPY (S&P 500)',
             line: {color: '#ef4444', width: 2, dash: 'dot'}
         };
         var trace3 = {
-            x: p_labels,
-            y: p_kospi,
+            x: dataSrc.dates,
+            y: dataSrc.kospiPcts,
+            customdata: dataSrc.kospiPcts.map(val => (val >= 0 ? '+' : '') + val.toFixed(2) + '%'),
+            hovertemplate: '날짜: %{x}<br>KOSPI: %{customdata}<extra></extra>',
             mode: 'lines',
             name: 'KOSPI',
             line: {color: '#10b981', width: 2, dash: 'dot'}
         };
+        
         var p_data = [trace1, trace2, trace3];
         var p_layout = {
             paper_bgcolor: 'rgba(0,0,0,0)',
@@ -273,6 +330,27 @@
             yaxis: { gridcolor: '#334155', tickfont: {color: '#94a3b8'}, ticksuffix: '%' }
         };
         Plotly.newPlot('performanceChart', p_data, p_layout, {responsive: true, displayModeBar: false});
+    }
+
+    function changeChartView(viewType) {
+        currentChartView = viewType;
+        
+        const btnDaily = document.getElementById('btn-chart-daily');
+        const btnMonthly = document.getElementById('btn-chart-monthly');
+        
+        if (viewType === 'monthly') {
+            btnMonthly.className = 'px-3 py-1 text-xs font-semibold rounded-md transition-all bg-blue-600 text-white';
+            btnDaily.className = 'px-3 py-1 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white';
+        } else {
+            btnDaily.className = 'px-3 py-1 text-xs font-semibold rounded-md transition-all bg-blue-600 text-white';
+            btnMonthly.className = 'px-3 py-1 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white';
+        }
+        
+        renderChart(viewType);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        renderChart('daily');
     });
 </script>
 {% endif %}
